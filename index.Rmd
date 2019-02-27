@@ -1,0 +1,102 @@
+<br> 
+<center><img src="http://i.imgur.com/sSaOozN.png" width="500"></center>
+
+## Visualization_Exercise
+
+### By MPA Candidate  Long Zong
+
+
+
+```{r}
+library(uwIntroStats)
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(ggiraph)
+library(ggiraphExtra)
+library(foreign)
+library(haven)
+library(dotwhisker)
+library(broom)
+library(dplyr)
+library(openxlsx)
+```
+
+
+
+
+This is the data that is being used
+```{r}
+link="https://github.com/ihsun-uw/Group3_Final_Project/raw/master/child_mortality.dta"
+
+df22=read_dta(url(link))
+```
+
+**Descriptive**
+
+Detail setting of Data
+```{r,eval=TRUE, echo=FALSE}
+df_aggre <- aggregate(cbind(NEONAT_COMB , INFANT_COMB, U5M_COMB, birthatend, hwdensity, midwifedensity)~provname, data=df22, FUN=mean )
+
+df_aggre
+```
+
+```{r,eval=TRUE, echo=FALSE}
+df_aggre$min=apply(df_aggre[,c(2:7)],1,min)
+
+# turn this min values into a ranking
+df_aggre$min=rank(df_aggre$min,ties.method ='first' )
+
+# order city by ranking
+prov_fact=as.factor(df_aggre[order(df_aggre$min),]$provname)
+
+# turn city into ordered factor
+df_aggre$provname=factor(df_aggre$provname,
+                   levels= prov_fact,
+                   labels = prov_fact,
+                   ordered = T)
+
+# delete column with ranks
+df_aggre$min=NULL
+```
+
+```{r,eval=TRUE, echo=FALSE}
+head(df_aggre)
+```
+Radar Map
+
+```{r fig.width=15, fig.height=10,echo=TRUE}
+base = ggRadar(df_aggre,aes(group='provname'),legend.position="none") 
+
+radar1 = base + facet_wrap(~provname,nrow =3) +
+    labs(title = "Radar plot: Province main study variables",
+                    caption = "Fig.1: describes how provinces are performing on every study variable
+
+Source:Health Information System") +
+              theme(panel.background = element_rect(fill = "gray90"),
+                    plot.caption = element_text(hjust = 0, size = 10), 
+                    plot.title = element_text(hjust = 0.5, size=14)) 
+
+radar1 
+```
+
+**Correlation**
+
+Regression Analysis
+
+```{r,eval=TRUE, echo=FALSE}
+scat <- ggplot(df22, aes(x=year, y=U5M_COMB)) +
+  geom_point(aes(col=provname), size=1) + 
+  geom_smooth(method="loess", se=T, size=1) + 
+  labs(title="Mozambique trends on Under five, Infant and Neonatal Mortality", 
+       y="U5 Mortality rate (per 1000 live births)", 
+       x="Year", 
+       caption = "Source: Demographic Healh Surveys") +
+    theme(legend.position = "right",
+  plot.caption = element_text(hjust = 0), 
+                    plot.title = element_text(hjust = 0.5)) +
+  scale_x_continuous(breaks = c(2000,2002,2004,2006,2008,2010))
+
+plot(scat)
+```
+
